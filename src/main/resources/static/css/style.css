@@ -100,10 +100,19 @@ h2 {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.5rem;
     color: #38bdf8;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+/* NUEVO: subtítulo pequeño debajo del h2 de cada sección */
+.section-subtitle {
+    font-size: 0.8rem;
+    color: #38bdf8;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 18px;
 }
 
 .api-desc {
@@ -188,6 +197,12 @@ h2 {
     height: auto;
     object-fit: contain;
     border-radius: 8px;
+    cursor: zoom-in; /* NUEVO: indica que se puede ampliar */
+    transition: transform 0.2s ease;
+}
+
+.apod-img:hover {
+    transform: scale(1.02);
 }
 
 .card {
@@ -295,6 +310,37 @@ h2 {
     border: 1px solid #22c55e;
 }
 
+/* NUEVO: overlay de imagen ampliada (lightbox) */
+.lightbox-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(3, 7, 18, 0.92);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    cursor: zoom-out;
+}
+
+.lightbox-overlay.active {
+    display: flex;
+}
+
+.lightbox-overlay img {
+    max-width: 95%;
+    max-height: 95%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 0 40px rgba(56, 189, 248, 0.4);
+}
+
 /* ==========================================
    FOOTER TERMINAL HUD (ADAPTABLE Y LIMPIO)
    ========================================== */
@@ -372,7 +418,7 @@ footer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px; /* Espaciado uniforme entre los elementos */
+    gap: 6px;
     text-align: center;
 }
 
@@ -463,6 +509,7 @@ footer {
     .about-banner p { font-size: 0.95rem; }
     section { padding: 18px; }
     h2 { font-size: 1.25rem; }
+    .section-subtitle { font-size: 0.72rem; }
     .api-desc { font-size: 0.9rem; padding: 10px 12px; }
 
     .date-picker-form {
