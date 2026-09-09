@@ -46,7 +46,7 @@
         <div class="card apod-card" th:if="${apod != null}">
             <div class="apod-container">
                 <div class="apod-img-wrapper">
-                    <img class="apod-img" th:if="${apod.imagenUrl != null and !apod.imagenUrl.isEmpty()}" th:src="${apod.imagenUrl}" alt="APOD">
+                    <img class="apod-img zoomable" th:if="${apod.imagenUrl != null and !apod.imagenUrl.isEmpty()}" th:src="${apod.imagenUrl}" alt="APOD">
                 </div>
                 <div>
                     <h3 th:text="${apod.titulo}" style="font-family: 'Orbitron'; color: #38bdf8; margin-bottom: 12px;">Título APOD</h3>
@@ -67,15 +67,15 @@
             <strong>Frecuencia:</strong> Registra imágenes múltiples veces al día y publica nuevos lotes <strong>diariamente</strong>.
         </div>
 
-        <div class="horizontal-carousel" th:unless="${#lists.isEmpty(epicImagenes)}">
-            <div class="card epic-item" th:each="epic : ${epicImagenes}">
-                <div class="epic-img-wrapper">
-                    <img class="epic-img" th:src="${epic.imageUrl}" alt="EPIC Earth">
-                </div>
-                <!-- Muestra la fecha y la hora exacta más reciente -->
-                <h4 style="font-family: 'Orbitron'; font-size: 0.8rem; color: #38bdf8;" th:text="${epic.fecha}">Fecha y Hora</h4>
-            </div>
+       <div class="horizontal-carousel" th:unless="${#lists.isEmpty(epicImagenes)}">
+    <div class="card epic-item" th:each="epic : ${epicImagenes}">
+        <div class="epic-img-wrapper">
+            <img class="epic-img zoomable" th:src="${epic.imageUrl}" alt="EPIC Earth" loading="lazy">
         </div>
+        <!-- Muestra la fecha y la hora exacta más reciente -->
+        <h4 style="font-family: 'Orbitron'; font-size: 0.8rem; color: #38bdf8;" th:text="${epic.fecha}">Fecha y Hora</h4>
+    </div>
+</div>
     </section>
 
     <!-- 3. SECCIÓN NEO (CARRUSEL HORIZONTAL DE ASTEROIDES) -->
@@ -158,23 +158,22 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const apodImg = document.querySelector('.apod-img');
-        const overlay = document.getElementById('lightboxOverlay');
-        const overlayImg = document.getElementById('lightboxImg');
+document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('lightboxOverlay');
+    const overlayImg = document.getElementById('lightboxImg');
 
-        if (apodImg && overlay && overlayImg) {
-            apodImg.addEventListener('click', function () {
-                overlayImg.src = apodImg.src;
-                overlay.classList.add('active');
-            });
+    document.addEventListener('click', function (event) {
+        const imagenClicada = event.target.closest('.zoomable');
 
-            overlay.addEventListener('click', function () {
-                overlay.classList.remove('active');
-                overlayImg.src = '';
-            });
+        if (imagenClicada) {
+            overlayImg.src = imagenClicada.src;
+            overlay.classList.add('active');
+        } else if (event.target === overlay) {
+            overlay.classList.remove('active');
+            overlayImg.src = '';
         }
     });
-    </script>
+});
+</script>
 </body>
 </html>
