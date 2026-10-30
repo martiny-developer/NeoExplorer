@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.neoexplorer.dto.APODDTO;
 import com.project.neoexplorer.dto.AsteroidDTO;
 import com.project.neoexplorer.dto.EpicDTO;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -19,9 +21,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class NasaService {
+
+    private static final String APOD_URL = "https://science.nasa.gov/wp-json/wp/v2/apod-basic";
 
     @Value("${nasa.api.key:DEMO_KEY}")
     private String apiKey;
@@ -54,19 +59,47 @@ public class NasaService {
         }
     }
 
-    @Cacheable(value = "apod", key = "#fecha != null ? #fecha : 'hoy'")
+    /** El endpoint nuevo busca por fecha en formato YYMMDD (2026-10-29 -> 261029). */
+    private String aCodigoFecha(String fecha) {
+        return LocalDate.parse(fecha.trim()).format(DateTimeFormatter.ofPattern("yyMMdd"));
+    }
+
+    /** La explicación ahora llega con HTML (enlaces, <strong>, "Tomorrow's picture"). Se deja solo el texto. */
+    private String limpiarExplicacion(String html) {
+        if (html == null) return "";
+        String texto = html.replaceAll("(?is)Tomorrow.s picture.*$", "");
+        texto = texto.replaceAll("<[^>]+>", "");
+        texto = HtmlUtils.htmlUnescape(texto);
+        texto = texto.replaceFirst("^\\s*Explanation\\s*:\\s*", "");
+        return texto.replaceAll("\\s+", " ").trim();
+    }
+
+    @Cacheable(value = "apod", key = "#fecha != null && !#fecha.isBlank() ? #fecha : T(java.time.LocalDate).now().toString()")
     public APODDTO obtenerImagenDelDia(String fecha) {
         try {
-            String url = "https://api.nasa.gov/planetary/apod?api_key=" + apiKey;
-            if (fecha != null && !fecha.trim().isEmpty()) {
-                url += "&date=" + fecha;
-            }
-            String json = realizarPeticionHttp(url);
-            JsonNode root = mapper.readTree(json);
+            String url = (fecha != null && !fecha.isBlank())
+                    ? APOD_URL + "/" + aCodigoFecha(fecha)
+                    : APOD_URL + "?per_page=1";
 
-            String tituloIngles = root.has("title") ? root.get("title").asText() : "Vista Cósmica APOD";
-            String urlImg = root.has("url") ? root.get("url").asText() : "https://images-assets.nasa.gov/image/PIA12348/PIA12348~orig.jpg";
-            String explicacionIngles = root.has("explanation") ? root.get("explanation").asText() : "Imagen astronómica del día provista por los telescopios orbitales de la NASA.";
+            JsonNode root = mapper.readTree(realizarPeticionHttp(url));
+            // La lista devuelve un arreglo; la consulta por fecha, un objeto
+            JsonNode apod = root.isArray() ? root.path(0) : root;
+            if (apod.isMissingNode() || !apod.has("title")) {
+                throw new IllegalStateException("Respuesta APOD vacía");
+            }
+
+            String tituloIngles = HtmlUtils.htmlUnescape(apod.path("title").asText("Vista Cósmica APOD"));
+
+            // La imagen ahora viene en hdurl; "url" es solo el enlace a la página del post
+            String urlImg = apod.path("hdurl").asText("");
+            if (urlImg.isBlank()) {
+                urlImg = "https://images-assets.nasa.gov/image/PIA12348/PIA12348~orig.jpg";
+            }
+
+            String explicacionIngles = limpiarExplicacion(apod.path("explanation").asText(""));
+            if (explicacionIngles.isBlank()) {
+                explicacionIngles = "Imagen astronómica del día provista por los telescopios orbitales de la NASA.";
+            }
 
             // Traducción de título y explicación al español (con respaldo si falla)
             String tituloEspanol = intentarTraducir(tituloIngles);
